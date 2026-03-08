@@ -1,0 +1,137 @@
+%=========================================================
+% FULL SYSTEM ODE FUNCTION
+%=========================================================
+function dydt = fullSystem(t, y, params)
+    dydt = zeros(15, 1); % Preallocate
+    L = params.L;
+
+    % 1. dCAMPi
+    dydt(1) = -y(1)*params.kCAMP_ + y(2)*params.kCAMP;
+
+    % 2. alpha GTP
+    dydt(2) = -y(2)*params.kHyd + y(4)*params.kHyd_ + y(6)*params.thetaA*params.v_*params.kGTP + y(8)*params.kGTP;
+
+    % 3. beta gamma
+    dydt(3) = -y(3)*y(4)*params.kGRA + y(5)*params.kGRA_ + y(6)*params.thetaA*params.v_*params.kGTP + y(8)*params.kGTP; 
+
+    % 4. alpha GDP
+    dydt(4) = y(2)*params.kHyd + y(4)*(-params.kHyd_ - y(3)*params.kGRA) + y(5)*params.kGRA_; 
+
+    % 5. G
+    dydt(5) = y(3)*y(4)*params.kGRA + y(5)*(-params.kG*y(15) - params.v*params.kG*y(12) - params.mu*params.kG*y(13) ...
+        - params.mu*params.v*params.kG*y(10) - params.kGRA_) + y(6)*params.mu_*params.v_*params.kG_ + y(7)*params.v_*params.kG_ ...
+        + y(8)*params.mu_*params.kG_ + y(9)*params.kG_; 
+
+    % 6. LR*G
+    dydt(6) = y(5)*y(10)*params.mu*params.v*params.kG + y(6)*(-params.mu_*params.v_*params.kG_ - params.ski_*params.v_*params.kL_ ...
+        - params.mu_*params.ski_*params.kAct_ - params.thetaA*params.v_*params.kGTP) + y(7)*params.mu*params.ski*params.kAct ...
+        + y(8)*params.ski*params.v*params.kL*L;
+
+    % 7. LRG 
+    dydt(7) = y(5)*y(12)*params.v*params.kG + y(6)*params.mu_*params.ski_*params.kAct_ + y(7)*(-params.v_*params.kG_ - ...
+        params.v_*params.kL_ - params.mu*params.ski*params.kAct)+ y(9)*params.v*params.kL*L; 
+    
+    % 8. R*G
+    dydt(8) = y(5)*y(13)*params.mu*params.kG + y(6)*params.ski_*params.v_*params.kL_ + y(8)*(-params.mu_*params.kG_ - ...
+        params.ski*params.v*params.kL*L - params.mu_*params.kAct_ - params.kGTP) + y(9)*params.mu*params.kAct; 
+
+    % 9. RG
+    dydt(9) = y(5)*y(15)*params.kG + y(7)*params.v_*params.kL_ + y(8)*params.mu_*params.kAct_ + y(9)*(-params.kG_ - ...
+        params.v*params.kL*L - params.mu*params.kAct); 
+
+    % 10. LR*
+    dydt(10) =  y(6)*(params.mu_*params.v_*params.kG_ + params.thetaA*params.v_*params.kGTP)+ ... 
+        y(10)*(-params.ski_*params.kAct_ - params.ski_*params.kL_- params.mu*params.v*params.kG*y(5)...
+        - params.kDS) + y(12)*params.ski*params.kAct + y(13)*(params.ski*params.kL*L);
+
+    % 11. LR DS
+    dydt(11) = y(10)*params.kDS - y(11)*params.delta_*params.kL_ + y(14)*params.delta*params.kL*L; 
+
+    % 12. LR
+    dydt(12) =  y(7)*params.v_*params.kG_ + y(10)*params.ski_*params.kAct_ + y(12)*(-params.kL_ - ...
+        params.ski*params.kAct - params.v*params.kG*y(5)) + params.kL*L*y(15); 
+
+    % 13. R*
+    dydt(13) = y(8)*(params.mu_*params.kG_ + params.kGTP) + y(10)*params.ski_*params.kL_ + ...
+        y(13)*(-params.kAct_ - params.ski*params.kL*L - params.mu*params.kG*y(5)) + y(15)*params.kAct; 
+
+    % 14. R DS
+    dydt(14) = params.delta_*params.kL_*y(11) - params.delta*params.kL*L*y(14); 
+
+    % 15. R
+    dydt(15) =  y(9)*params.kG_ + y(12)*params.kL_ + y(13)*params.kAct_ + y(15)*(-params.kL*L - params.kAct - params.kG*y(5)) ;
+end
+
+%=========================================================
+% INITIAL CONDITIONS FUNCTION
+%=========================================================
+function y0 = initialConditions(params)
+    y0 = zeros(15,1);
+    y0(15) = params.RTot;  
+    y0(5)  = params.GTot;  
+end
+
+%=========================================================
+% MAIN SCRIPT
+%=========================================================
+clear; clc;
+
+% PARAMETERS
+params.kL_ = 0.2485 * 60;
+params.kL = 2.233 * 10^7 *60;
+params.kAct_ = 347.67 *60;
+params.kAct = 0.0015 *60;
+params.kG_ = 5.103*10^(-6) *60;
+params.kG = 4.726 * 10 ^ 6 *60; 
+params.delta_ = 1.885*10^(-4);
+params.delta = 0.0390;
+params.ski_ = 1.8551;
+params.ski = 1.2346 *10 ^4; 
+params.mu_ = 0.0345;
+params.mu = 0.5206;
+params.kGTP = 0.0144 *60;
+params.kDS = 1.299*10^(-5) *60;
+params.v_ = 0.9644;
+params.v = 0.9390;
+params.thetaA = .8668;
+params.kHyd_ = 9.126*10^(-4) *60;
+params.kHyd = 0.1393 *60;
+params.kCAMP_ = 0.0964 *60;
+params.kCAMP = .1236 *60;
+params.RTot = 6.591 * (10^-10);
+params.GTot = 1.405*10^(-9);
+params.kRA_ = 3.144*10^(-19)*60;
+params.kRA = 8.213*10^(3)*60;
+params.kGRA_ = params.kRA_;
+params.kGRA = params.kRA;
+params.a = 5.518 * 10 ^ 11;  
+
+tspan = [0 600]; % first solver: 600 mins
+L_2_values = [1e-11, 1e-10, 1e-9, 3e-9, 1e-8, 1e-7];
+
+figure; hold on;
+
+% FIRST SOLVER: L = 0
+params.L = 0;       
+y0 = initialConditions(params); 
+options = odeset('MaxStep',1);
+[t, y] = ode15s(@(t,y) fullSystem(t,y,params), tspan, y0, options);
+
+% SECOND SOLVER: varying L using steady state from first run
+tspan2 = [0 60];  % shorter simulation
+for L = L_2_values
+    params.L = L; 
+    y1 = y(end, :)';  % use steady state from first solver
+    [t2, y2] = ode15s(@(t,y2) fullSystem(t,y2,params), tspan2, y1, options);
+    plot(t2, params.a .*y2(:,1), 'LineWidth', 3); % plot cAMP vs time
+end
+
+xlabel('t (mins)');
+xticks([10 20 30 40 50 60]);
+xticklabels({'10','20','30','40','50','60'});
+ylabel('S(t) = a[cAMP]');
+ylim([0 40]);
+legend('L=1e-11','L=1e-10','L=1e-9','L=3e-9','L=1e-8','L=1e-7');
+title('Neuron - ExF1');
+f = gcf;
+exportgraphics(f, 'exf1 neuron.png', 'Resolution', 300);
